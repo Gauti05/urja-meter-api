@@ -1,0 +1,56 @@
+import axios, { AxiosRequestConfig } from 'axios';
+import { config } from '../config/env';
+import { getSessionCookie, clearSession } from '../services/urjaAuth.service';
+
+export const urjaClient = axios.create({
+  baseURL: config.urjaBaseUrl,
+  timeout: 10000,
+});
+
+// The exact response returned by the Urja portal for an expired session has not been verified.
+// We assume 401 or 403 pending verification.
+const isAuthenticationFailure = (error: unknown): boolean => {
+  if (axios.isAxiosError(error) && error.response) {
+    return error.response.status === 401 || error.response.status === 403;
+  }
+  return false;
+};
+
+export const authenticatedUrjaGet = async <T>(
+  url: string,
+  requestConfig: AxiosRequestConfig = {}
+): Promise<T> => {
+  let cookie = await getSessionCookie();
+
+  try {
+    const response = await urjaClient.get<T>(url, {
+      ...requestConfig,
+      headers: {
+        ...requestConfig.headers,
+        Cookie: cookie,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(
+      '[Urja Client] Request failed:',
+      url,
+      axios.isAxiosError(error) ? error.response?.status : 'unknown'
+    );
+
+    if (isAuthenticationFailure(error)) {
+      clearSession();
+      cookie = await getSessionCookie();
+
+      const retryResponse = await urjaClient.get<T>(url, {
+        ...requestConfig,
+        headers: {
+          ...requestConfig.headers,
+          Cookie: cookie,
+        },
+      });
+      return retryResponse.data;
+    }
+    throw error;
+  }
+};
