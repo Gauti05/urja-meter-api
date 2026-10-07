@@ -7,8 +7,7 @@ export const urjaClient = axios.create({
   timeout: 10000,
 });
 
-// The exact response returned by the Urja portal for an expired session has not been verified.
-// We assume 401 or 403 pending verification.
+
 const isAuthenticationFailure = (error: unknown): boolean => {
   if (axios.isAxiosError(error) && error.response) {
     return error.response.status === 401 || error.response.status === 403;

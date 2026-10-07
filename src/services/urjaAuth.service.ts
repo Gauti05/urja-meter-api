@@ -7,8 +7,6 @@ export const clearSession = () => {
   sessionCookie = null;
 };
 
-// Login encoding must match the portal request observed in DevTools.
-// Do not change this without verifying the upstream login request.
 const buildLoginRequest = () => {
   const body = new URLSearchParams();
   body.set('email', config.urjaEmail);
